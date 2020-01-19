@@ -24,7 +24,9 @@
 #include "config.h"
 #include <ctype.h>
 #include <errno.h>
+#ifdef HAVE_ID3TAG
 #include <id3tag.h>
+#endif
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
@@ -37,7 +39,9 @@
 #include <ogg/ogg.h>
 #include <vorbis/codec.h>
 #endif
+#ifdef HAVE_FLAC
 #include <FLAC/metadata.h>
+#endif
 
 #ifdef HAVE_ICONV
 #include <iconv.h>
@@ -102,12 +106,16 @@ char *winamp_genre[] = {
 /*
  * Prototype
  */
+#ifdef HAVE_ID3TAG
 #include "tagutils-mp3.h"
+#endif
 #include "tagutils-aac.h"
 #ifdef HAVE_VORBISFILE
 #include "tagutils-ogg.h"
 #endif
+#ifdef HAVE_FLAC
 #include "tagutils-flc.h"
+#endif
 #include "tagutils-asf.h"
 #include "tagutils-wav.h"
 #include "tagutils-pcm.h"
@@ -128,8 +136,12 @@ typedef struct {
 
 static taghandler taghandlers[] = {
 	{ "aac", _get_aactags, _get_aacfileinfo                                  },
+#ifdef HAVE_ID3TAG
 	{ "mp3", _get_mp3tags, _get_mp3fileinfo                                  },
+#endif
+#ifdef HAVE_FLAC
 	{ "flc", _get_flctags, _get_flcfileinfo                                  },
+#endif
 #ifdef HAVE_VORBISFILE
 	{ "ogg", 0,            _get_oggfileinfo                                  },
 #endif
@@ -143,12 +155,16 @@ static taghandler taghandlers[] = {
 
 //*********************************************************************************
 #include "tagutils-misc.c"
+#ifdef HAVE_ID3TAG
 #include "tagutils-mp3.c"
+#endif
 #include "tagutils-aac.c"
 #ifdef HAVE_VORBISFILE
 #include "tagutils-ogg.c"
 #endif
+#ifdef HAVE_FLAC
 #include "tagutils-flc.c"
+#endif
 #include "tagutils-asf.c"
 #include "tagutils-wav.c"
 #include "tagutils-pcm.c"

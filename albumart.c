@@ -30,7 +30,9 @@
 #include <setjmp.h>
 #include <errno.h>
 
+#ifdef HAVE_FLAC
 #include <jpeglib.h>
+#endif
 
 #include "upnpglobalvars.h"
 #include "albumart.h"

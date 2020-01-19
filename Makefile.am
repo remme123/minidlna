@@ -44,16 +44,25 @@ avahilibs = -lavahi-client -lavahi-common
 endif
 endif
 
-minidlnad_LDADD = \
-	@LIBJPEG_LIBS@ \
-	@LIBID3TAG_LIBS@ \
-	@LIBSQLITE3_LIBS@ \
-	@LIBAVFORMAT_LIBS@ \
-	@LIBAVUTIL_LIBS@ \
-	@LIBEXIF_LIBS@ \
-	@LIBINTL@ \
-	@LIBICONV@ \
-	-lFLAC $(flacogglibs) $(vorbislibs) $(avahilibs)
+minidlnad_LDADD =
+if HAVE_JPEG
+minidlnad_LDADD += @LIBJPEG_LIBS@
+endif
+if HAVE_ID3TAG
+minidlnad_LDADD += @LIBID3TAG_LIBS@
+endif
+minidlnad_LDADD += @LIBSQLITE3_LIBS@
+minidlnad_LDADD += @LIBAVFORMAT_LIBS@
+minidlnad_LDADD += @LIBAVUTIL_LIBS@
+if HAVE_EXIF
+minidlnad_LDADD += @LIBEXIF_LIBS@
+endif
+minidlnad_LDADD += @LIBINTL@
+minidlnad_LDADD += @LIBICONV@
+if HAVE_FLAC
+minidlnad_LDADD += -lFLAC
+endif
+minidlnad_LDADD += $(flacogglibs) $(vorbislibs) $(avahilibs)
 
 minidlnad_LDFLAGS = @STATIC_LDFLAGS@
 

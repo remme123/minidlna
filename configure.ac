@@ -215,45 +215,6 @@ if test -z "$HAVE_LIBAVFORMAT"; then
     AC_MSG_ERROR([libavformat headers not found or not usable])
 fi
 
-CPPFLAGS_SAVE="$CPPFLAGS"
-for dir in "" /usr/local $INCLUDE_DIR; do
-    if test -n "$dir"; then
-        CPPFLAGS="$CPPFLAGS -I$dir"
-    fi
-    AC_CHECK_HEADERS([jpeglib.h sqlite3.h libexif/exif-loader.h id3tag.h ogg/ogg.h vorbis/codec.h FLAC/metadata.h],,[unset $as_ac_Header; break],)
-    if test x"$ac_cv_header_jpeglib_h" != x"yes"; then
-        CPPFLAGS="$CPPFLAGS_SAVE"
-        continue
-    elif test x"$ac_cv_header_sqlite3_h" != x"yes"; then
-        CPPFLAGS="$CPPFLAGS_SAVE"
-        continue
-    elif test x"$ac_cv_header_libexif_exif_loader_h" != x"yes"; then
-        CPPFLAGS="$CPPFLAGS_SAVE"
-        continue
-    elif test x"$ac_cv_header_id3tag_h" != x"yes"; then
-        CPPFLAGS="$CPPFLAGS_SAVE"
-        continue
-    elif test x"$ac_cv_header_ogg_ogg_h" != x"yes"; then
-        CPPFLAGS="$CPPFLAGS_SAVE"
-        continue
-    elif test x"$ac_cv_header_vorbis_codec_h" != x"yes"; then
-        CPPFLAGS="$CPPFLAGS_SAVE"
-        continue
-    elif test x"$ac_cv_header_FLAC_metadata_h" != x"yes"; then
-        CPPFLAGS="$CPPFLAGS_SAVE"
-        continue
-    else
-        break;
-    fi
-done
-test x"$ac_cv_header_jpeglib_h" != x"yes" && AC_MSG_ERROR([libjpeg headers not found or not usable])
-test x"$ac_cv_header_sqlite3_h" != x"yes" && AC_MSG_ERROR([libsqlite3 headers not found or not usable])
-test x"$ac_cv_header_libexif_exif_loader_h" != x"yes" && AC_MSG_ERROR([libexif headers not found or not usable])
-test x"$ac_cv_header_id3tag_h" != x"yes" && AC_MSG_ERROR([libid3tag headers not found or not usable])
-test x"$ac_cv_header_ogg_ogg_h" != x"yes" && AC_MSG_ERROR([libogg headers not found or not usable])
-test x"$ac_cv_header_vorbis_codec_h" != x"yes" && AC_MSG_ERROR([libvorbis headers not found or not usable])
-test x"$ac_cv_header_FLAC_metadata_h" != x"yes" && AC_MSG_ERROR([libFLAC headers not found or not usable])
-
 CFLAGS_SAVE="$CFLAGS"
 CFLAGS="$CFLAGS -Wall -Werror"
 AC_MSG_CHECKING([if we should use the daemon() libc function])
@@ -383,45 +344,79 @@ AC_COMPILE_IFELSE(
      ])
 CFLAGS="$CFLAGS_SAVE"
 
-LDFLAGS_SAVE="$LDFLAGS"
-for dir in "" /usr/local $SEARCH_DIR; do
-    if test -n "$dir"; then
-        LDFLAGS="$LDFLAGS -L$dir/lib"
-    fi
-    AC_CHECK_LIB([jpeg], [jpeg_set_defaults], [LIBJPEG_LIBS="-ljpeg"], [unset ac_cv_lib_jpeg_jpeg_set_defaults; LDFLAGS="$LDFLAGS_SAVE"; continue])
-    break
-done
-test x"$ac_cv_lib_jpeg_jpeg_set_defaults" = x"yes" || AC_MSG_ERROR([Could not find libjpeg])
-AC_SUBST(LIBJPEG_LIBS)
+AC_ARG_WITH(libjpeg,
+	AS_HELP_STRING([--without-libjpeg], [if use libjpeg]),
+	[AM_CONDITIONAL(HAVE_JPEG, false)],
+	[AM_CONDITIONAL(HAVE_JPEG, true)])
+
+AC_ARG_WITH(libexif,
+	AS_HELP_STRING([--without-libexif], [if use libexif]),
+	[AM_CONDITIONAL(HAVE_EXIF, false)],
+	[AM_CONDITIONAL(HAVE_EXIF, true)])
+
+AC_ARG_WITH(libid3tag,
+	AS_HELP_STRING([--with-libid3tag], [if use libid3tag]),
+	[AM_CONDITIONAL(HAVE_ID3TAG, true) AC_DEFINE(HAVE_ID3TAG, 1, [macro define])], 
+	[AM_CONDITIONAL(HAVE_ID3TAG, false)])
+
+AC_ARG_WITH(libflac,
+	AS_HELP_STRING([--with-libflac], [if use libflac]),
+	[AM_CONDITIONAL(HAVE_FLAC, true) AC_DEFINE(HAVE_FLAC, 1, [macro define])],
+	[AM_CONDITIONAL(HAVE_FLAC, false)])
+
+AC_ARG_WITH(vorbisfile,
+	AS_HELP_STRING([--with-vorbisfile], [if use vorbisfile]),
+    [AM_CONDITIONAL(HAVE_VORBISFILE, true) AC_DEFINE(HAVE_VORBISFILE, 1, [macro define])], 
+    [AM_CONDITIONAL(HAVE_VORBISFILE, false) AM_CONDITIONAL(NEED_OGG, false) AM_CONDITIONAL(NEED_VORBIS, false)])
+
+AC_ARG_ENABLE(third-party-static,
+	AS_HELP_STRING([--enable-third-party-static], [link third-party libs with static archive]),
+    [AM_CONDITIONAL(ENABLE_THIRD_PARTY_STATIC, true)], 
+    [AM_CONDITIONAL(ENABLE_THIRD_PARTY_STATIC, false)])
+
+if test x"$HAVE_JPEG_TRUE" == x; then
+    LDFLAGS_SAVE="$LDFLAGS"
+    for dir in "" /usr/local $SEARCH_DIR; do
+        if test -n "$dir"; then
+            LDFLAGS="$LDFLAGS -L$dir/lib"
+        fi
+        AC_CHECK_LIB([jpeg], [jpeg_set_defaults], [test -z $ENABLE_THIRD_PARTY_STATIC_TRUE && LIBJPEG_LIBS="-l:libjpeg.a" || LIBJPEG_LIBS="-ljpeg"], [unset ac_cv_lib_jpeg_jpeg_set_defaults; LDFLAGS="$LDFLAGS_SAVE"; continue])
+        break
+    done
+    test x"$ac_cv_lib_jpeg_jpeg_set_defaults" = x"yes" || AC_MSG_ERROR([Could not find libjpeg])
+    AC_SUBST(LIBJPEG_LIBS)
+fi
 
 LDFLAGS_SAVE="$LDFLAGS"
 for dir in "" /usr/local $SEARCH_DIR; do
     if test -n "$dir"; then
         LDFLAGS="$LDFLAGS -L$dir/lib"
     fi
-    AC_CHECK_LIB([exif], [exif_data_new_from_file], [LIBEXIF_LIBS="-lexif"], [unset ac_cv_lib_exif_exif_data_new_from_file; LDFLAGS="$LDFLAGS_SAVE"; continue])
+    AC_CHECK_LIB([exif], [exif_data_new_from_file], [test -z $ENABLE_THIRD_PARTY_STATIC_TRUE && LIBEXIF_LIBS="-l:libexif.a" || LIBEXIF_LIBS="-lexif"], [unset ac_cv_lib_exif_exif_data_new_from_file; LDFLAGS="$LDFLAGS_SAVE"; continue])
     break
 done
 test x"$ac_cv_lib_jpeg_jpeg_set_defaults" = x"yes" || AC_MSG_ERROR([Could not find libexif])
 AC_SUBST(LIBEXIF_LIBS)
 
-LDFLAGS_SAVE="$LDFLAGS"
-for dir in "" /usr/local $SEARCH_DIR; do
-    if test -n "$dir"; then
-        LDFLAGS="$LDFLAGS -L$dir/lib"
-    fi
-    AC_CHECK_LIB([id3tag], [id3_file_open], [LIBID3TAG_LIBS="-lid3tag"], [unset ac_cv_lib_id3tag_id3_file_open; LDFLAGS="$LDFLAGS_SAVE"; continue])
-    break
-done
-test x"$ac_cv_lib_id3tag_id3_file_open" = x"yes" || AC_MSG_ERROR([Could not find libid3tag])
-AC_SUBST(LIBID3TAG_LIBS)
+if test x"$HAVE_ID3TAG_TRUE" == x; then
+    LDFLAGS_SAVE="$LDFLAGS"
+    for dir in "" /usr/local $SEARCH_DIR; do
+        if test -n "$dir"; then
+            LDFLAGS="$LDFLAGS -L$dir/lib"
+        fi
+        AC_CHECK_LIB([id3tag], [id3_file_open], [LIBID3TAG_LIBS="-lid3tag"], [unset ac_cv_lib_id3tag_id3_file_open; LDFLAGS="$LDFLAGS_SAVE"; continue])
+        break
+    done
+    test x"$ac_cv_lib_id3tag_id3_file_open" = x"yes" || AC_MSG_ERROR([Could not find libid3tag])
+    AC_SUBST(LIBID3TAG_LIBS)
+fi
 
 LDFLAGS_SAVE="$LDFLAGS"
 for dir in "" /usr/local $SEARCH_DIR; do
     if test -n "$dir"; then
         LDFLAGS="$LDFLAGS -L$dir/lib"
     fi
-    AC_CHECK_LIB(sqlite3, sqlite3_open, [LIBSQLITE3_LIBS="-lsqlite3"], [unset ac_cv_lib_sqlite3_sqlite3_open; LDFLAGS="$LDFLAGS_SAVE"; continue])
+    AC_CHECK_LIB(sqlite3, sqlite3_open, [test -z $ENABLE_THIRD_PARTY_STATIC_TRUE && LIBSQLITE3_LIBS="-l:libsqlite3.a" || LIBSQLITE3_LIBS="-lsqlite3"], [unset ac_cv_lib_sqlite3_sqlite3_open; LDFLAGS="$LDFLAGS_SAVE"; continue])
     AC_CHECK_LIB(sqlite3, sqlite3_malloc, [AC_DEFINE([HAVE_SQLITE3_MALLOC], [1], [Define to 1 if the sqlite3_malloc function exists.])])
     AC_CHECK_LIB(sqlite3, sqlite3_prepare_v2, [AC_DEFINE([HAVE_SQLITE3_PREPARE_V2], [1], [Define to 1 if the sqlite3_prepare_v2 function exists.])])
     break
@@ -452,6 +447,7 @@ AC_CHECK_LIB(pthread, pthread_create)
 
 # test if we have vorbisfile
 # prior versions had ov_open_callbacks in libvorbis, test that, too.
+if test x"HAVE_FLAC_TRUE" == x; then
 AC_CHECK_LIB(vorbisfile, ov_open_callbacks,
         [AC_CHECK_HEADERS([vorbis/vorbisfile.h],
          AM_CONDITIONAL(HAVE_VORBISFILE, true)
@@ -459,23 +455,26 @@ AC_CHECK_LIB(vorbisfile, ov_open_callbacks,
          AM_CONDITIONAL(HAVE_VORBISFILE, false))],
          AM_CONDITIONAL(HAVE_VORBISFILE, false),
          -lvorbis -logg)
-AC_CHECK_LIB(FLAC, FLAC__stream_decoder_init_stream,
-        [AC_CHECK_HEADERS([FLAC/all.h],
-         AM_CONDITIONAL(HAVE_FLAC, true)
-         AC_DEFINE(HAVE_FLAC,1,[Have flac]),
-         AM_CONDITIONAL(HAVE_FLAC, false))],
-         AM_CONDITIONAL(HAVE_FLAC, false),
-        -logg)
-# test without -logg to see whether we really need it (libflac can be without)
-AC_CHECK_LIB(FLAC, FLAC__stream_decoder_init_ogg_stream,
-         AM_CONDITIONAL(HAVE_FLAC, true)
-         AC_DEFINE(HAVE_FLAC,1,[Have flac])
-         AM_CONDITIONAL(NEED_OGG, false),
-        [AM_CONDITIONAL(NEED_OGG, true)])
-AC_CHECK_LIB(vorbisfile, vorbis_comment_query,
-        AM_CONDITIONAL(NEED_VORBIS, false),
-        AM_CONDITIONAL(NEED_VORBIS, true),
-        -logg)
+    AC_CHECK_LIB(FLAC, FLAC__stream_decoder_init_stream,
+            [AC_CHECK_HEADERS([FLAC/all.h],
+             AM_CONDITIONAL(HAVE_FLAC, true)
+             AC_DEFINE(HAVE_FLAC,1,[Have flac]),
+             AM_CONDITIONAL(HAVE_FLAC, false))],
+             AM_CONDITIONAL(HAVE_FLAC, false),
+            -logg)
+    # test without -logg to see whether we really need it (libflac can be without)
+    AC_CHECK_LIB(FLAC, FLAC__stream_decoder_init_ogg_stream,
+             AM_CONDITIONAL(HAVE_FLAC, true)
+             AC_DEFINE(HAVE_FLAC,1,[Have flac])
+             AM_CONDITIONAL(NEED_OGG, false),
+            [AM_CONDITIONAL(NEED_OGG, true)])
+fi
+if test x"HAVE_VORBISFILE_TRUE" == x; then
+	AC_CHECK_LIB(vorbisfile, vorbis_comment_query,
+			AM_CONDITIONAL(NEED_VORBIS, false),
+			AM_CONDITIONAL(NEED_VORBIS, true),
+			-logg)
+fi
 
 AC_CHECK_LIB(avahi-client, avahi_threaded_poll_new,
         [AC_CHECK_HEADERS([avahi-common/thread-watch.h],
